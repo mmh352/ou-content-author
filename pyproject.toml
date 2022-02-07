@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "ou-content-author"
+version = "0.1.0"
+description = ""
+authors = ["Mark Hall <mark.hall@open.ac.uk>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+tornado = "^6.1"
+click = "^8.0.3"
+GitPython = "^3.1.26"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
