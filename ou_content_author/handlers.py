@@ -181,6 +181,16 @@ class ApiHandler(websocket.WebSocketHandler):
                 await self.run_render(os.path.join(self._repository_location, os.path.dirname(data['block'])[1:]),
                                       os.path.dirname(data['block'])[1:],
                                       os.path.join(data['file']['directory'], data['file']['filename']))
+            repo = Repo(self._repository_location)
+            if len(repo.index.diff(None) + repo.index.diff('HEAD')):
+                self.send_message({
+                    'type': 'changes-found'
+                })
+            else:
+                self.send_message({
+                    'type': 'no-changes-found'
+                })
+
 
     def commit_changes(self, data: dict):
         """Commit and push changes."""

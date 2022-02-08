@@ -16,7 +16,9 @@ type Message = CloneRepositoryMessage |
                CommitChangesMessage |
                DiscardChangesMessage |
                ChangesCommittedMessage |
-               ChangesDiscardedMessage;
+               ChangesDiscardedMessage |
+               ChangesFoundMessage |
+               NoChangesFoundMessage;
 
 type CloneRepositoryMessage = {
     type: 'clone-repository',
@@ -107,4 +109,12 @@ type ChangesCommittedMessage = {
 
 type ChangesDiscardedMessage = {
     type: 'changes-discarded',
+};
+
+type ChangesFoundMessage = {
+    type: 'changes-found',
+};
+
+type NoChangesFoundMessage = {
+    type: 'no-changes-found',
 };

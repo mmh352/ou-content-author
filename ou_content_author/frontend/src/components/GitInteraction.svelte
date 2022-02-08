@@ -18,6 +18,7 @@
     let commitMessage = '';
     let commitMessagError = '';
     let busyAction = '';
+    let changesToCommit = false;
 
     function handleRespositoryEvents(ev: Event) {
         ev.preventDefault();
@@ -73,6 +74,7 @@
                 type: 'checkout-branch',
                 branch: target.value,
             });
+            changesToCommit = false;
         }
     }
 
@@ -89,7 +91,7 @@
 
     function handleCommit(ev: Event) {
         ev.preventDefault();
-        if (commitMessage.trim() && $block !== null) {
+        if (commitMessage.trim() && $block !== null && changesToCommit) {
             commitMessagError = '';
             busyAction = 'commit-changes';
             sendMessage({
@@ -119,8 +121,14 @@
             if (message.type === 'repository' || message.type === 'branch' || message.type == 'block' || message.type === 'repository-deleted' || message.type == 'changes-committed' || message.type == 'changes-discarded') {
                 busyAction = '';
             }
-            if (message.type == 'changes-committed') {
+            if (message.type === 'changes-committed') {
                 commitMessage = '';
+            }
+            if (message.type === 'changes-found') {
+                changesToCommit = true;
+            }
+            if (message.type === 'no-changes-found') {
+                changesToCommit = false;
             }
         }
     });
@@ -200,17 +208,17 @@
         <div role="presentation" class="flex-auto"></div>
         <form on:submit={handleCommit} class="flex-1 flex flex-row space-x-2 px-2 py-1">
             <label class="relative block w-96"><span class="sr-only">Commit message</span>
-                <input bind:value={commitMessage} disabled={$block === null} type="text" placeholder="Commit message" class="block w-full h-full px-2 border focus:outline outline-2 outline-blue outline-offset-1 focus:shadow-inner"/>
+                <input bind:value={commitMessage} disabled={$block === null && !changesToCommit} type="text" placeholder={changesToCommit ? 'Commit message' : 'No changes to commit'} class="block w-full h-full px-2 border focus:outline outline-2 outline-blue outline-offset-1 focus:shadow-inner"/>
                 {#if commitMessagError}
                     <span class="absolute block w-full border border-red bg-white shadow text-sm text-red px-2 py-1">{commitMessagError}</span>
                 {/if}
             </label>
-            <button disabled={$block === null} type="submit" aria-label="Commit changes" class="px-1 py-1 border-green text-green hover:bg-green hover:text-white focus:bg-green focus:text-white transition-colors focus:outline outline-2 outline-blue outline-offset-1">
+            <button disabled={$block === null && !changesToCommit} type="submit" aria-label="Commit changes" class="px-1 py-1 border-green text-green hover:bg-green hover:text-white focus:bg-green focus:text-white transition-colors focus:outline outline-2 outline-blue outline-offset-1">
                 <svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4">
                     <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
                 </svg>
             </button>
-            <button disabled={$block === null} on:click={handleDiscard} type="button" aria-label="Discard changes" class="px-1 py-1 border-red text-red hover:bg-red hover:text-white focus:bg-red focus:text-white transition-colors focus:outline outline-2 outline-blue outline-offset-1">
+            <button disabled={$block === null && !changesToCommit} on:click={handleDiscard} type="button" aria-label="Discard changes" class="px-1 py-1 border-red text-red hover:bg-red hover:text-white focus:bg-red focus:text-white transition-colors focus:outline outline-2 outline-blue outline-offset-1">
                 <svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4">
                     <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
                 </svg>
