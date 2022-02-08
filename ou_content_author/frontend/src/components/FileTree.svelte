@@ -44,7 +44,20 @@
             sections = sections.sort((a, b) => {
                 const aParts = a.path.split('/');
                 const bParts = b.path.split('/');
-                if (aParts.length > bParts.length) {
+                for (let idx = 0; idx < Math.max(aParts.length, bParts.length); idx++) {
+                    if (idx < aParts.length && idx < bParts.length) {
+                        if (aParts[idx] < bParts[idx]) {
+                            return -1;
+                        } else if (aParts[idx] > bParts[idx]) {
+                            return 1;
+                        }
+                    } else if (idx < aParts.length) {
+                        return 1;
+                    } else if (idx < bParts.length) {
+                        return -1;
+                    }
+                }
+                /*if (aParts.length > bParts.length) {
                     return 1;
                 } else if (aParts.length < bParts.length) {
                     return 0;
@@ -57,7 +70,8 @@
                         }
                     }
                     return 0;
-                }
+                }*/
+                return 0;
             });
             return sections;
         } else {

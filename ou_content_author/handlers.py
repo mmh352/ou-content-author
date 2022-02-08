@@ -180,7 +180,7 @@ class ApiHandler(websocket.WebSocketHandler):
         if 'name' in data and data['name'] and 'email' in data and data['email'] and 'message' in data and data['message']:
             repo = Repo(self._repository_location)
             if len(repo.index.diff(None) + repo.index.diff('HEAD')) > 0 or len(repo.untracked_files) > 0:
-                repo.git.add(update=True)
+                repo.git.add('.')
                 actor = Actor(data['name'], data['email'])
                 repo.index.commit(data['message'], author=actor, committer=actor)
                 repo.git.push('--force')
