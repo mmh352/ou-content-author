@@ -84,6 +84,10 @@ class ApiHandler(websocket.WebSocketHandler):
                 self.commit_changes(data)
             elif data['type'] == 'discard-changes':
                 self.discard_changes(data)
+            elif data['type'] == 'add-file':
+                self.add_file(data)
+            elif data['type'] == 'delete-file':
+                self.delete_file(data)
 
     def send_message(self, message: dict):
         self.write_message(json.dumps(message))
@@ -136,20 +140,7 @@ class ApiHandler(websocket.WebSocketHandler):
     def select_block(self, data: dict):
         """Select a given block."""
         if 'block' in data:
-            blockpath = os.path.dirname(f'{self._repository_location}/{data["block"]}')
-            files = []
-            for basepath, dirnames, filenames in os.walk(blockpath):
-                for filename in filenames:
-                    if filename.endswith('.md'):
-                        files.append({
-                            'directory': basepath[len(blockpath) + 1:],
-                            'filename': filename
-                        })
-            self.send_message({
-                'type': 'block',
-                'path': data['block'],
-                'files': files
-            })
+            self.scan_block(data['block'])
 
     async def load_file_content(self, data: dict):
         """Load the content of a file."""
@@ -181,37 +172,22 @@ class ApiHandler(websocket.WebSocketHandler):
                 await self.run_render(os.path.join(self._repository_location, os.path.dirname(data['block'])[1:]),
                                       os.path.dirname(data['block'])[1:],
                                       os.path.join(data['file']['directory'], data['file']['filename']))
-            repo = Repo(self._repository_location)
-            if len(repo.index.diff(None) + repo.index.diff('HEAD')):
-                self.send_message({
-                    'type': 'changes-found'
-                })
-            else:
-                self.send_message({
-                    'type': 'no-changes-found'
-                })
+            self.check_repo_changes()
 
 
     def commit_changes(self, data: dict):
         """Commit and push changes."""
         if 'name' in data and data['name'] and 'email' in data and data['email'] and 'message' in data and data['message']:
             repo = Repo(self._repository_location)
-            changed = set()
-            for diff in repo.index.diff(None) + repo.index.diff('HEAD'):
-                if diff.a_path:
-                    changed.add(diff.a_path)
-                elif diff.b_path:
-                    changed.add(diff.b_path)
-            print(changed)
-            if len(changed):
-                print(changed)
-                repo.index.add(changed)
+            if len(repo.index.diff(None) + repo.index.diff('HEAD')) > 0 or len(repo.untracked_files) > 0:
+                repo.git.add(update=True)
                 actor = Actor(data['name'], data['email'])
                 repo.index.commit(data['message'], author=actor, committer=actor)
                 repo.git.push('--force')
-        self.send_message({
-            'type': 'changes-committed',
-        })
+            self.send_message({
+                'type': 'changes-committed',
+            })
+            self.check_repo_changes()
 
     def discard_changes(self, data: dict):
         """Discard any changes."""
@@ -220,6 +196,33 @@ class ApiHandler(websocket.WebSocketHandler):
         self.send_message({
             'type': 'changes-discarded',
         })
+        self.check_repo_changes()
+
+    def add_file(self, data: dict):
+        if 'block' in data and 'file' in data and 'directory' in data['file'] and 'filename' in data['file']:
+            filepath = os.path.join(self._repository_location,
+                                    os.path.dirname(data['block'])[1:],
+                                    data['file']['directory'],
+                                    data['file']['filename'])
+            if not os.path.exists(filepath) and os.path.abspath(filepath).startswith(os.path.abspath(self._repository_location)):
+                if not os.path.exists(os.path.dirname(filepath)):
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                with open(filepath, 'w') as out_f:
+                    if filepath.endswith('.md'):
+                        out_f.write('# Page Title')
+            self.scan_block(data['block'])
+            self.check_repo_changes()
+
+    def delete_file(self, data: dict):
+        if 'block' in data and 'file' in data and 'directory' in data['file'] and 'filename' in data['file']:
+            filepath = os.path.join(self._repository_location,
+                                    os.path.dirname(data['block'])[1:],
+                                    data['file']['directory'],
+                                    data['file']['filename'])
+            if os.path.exists(filepath) and os.path.abspath(filepath).startswith(os.path.abspath(self._repository_location)):
+                os.unlink(filepath)
+            self.scan_block(data['block'])
+            self.check_repo_changes()
 
     async def run_render(self, basepath: str, block: str, filepath: str):
         """Run the render process and send the required messages."""
@@ -249,6 +252,35 @@ class ApiHandler(websocket.WebSocketHandler):
                     'url': f'/{block}/{filepath}',
                     'output': result,
                 })
+
+    def check_repo_changes(self):
+        """Check if there are changes to commit in the repo."""
+        repo = Repo(self._repository_location)
+        if len(repo.index.diff(None) + repo.index.diff('HEAD')) > 0 or len(repo.untracked_files) > 0:
+            self.send_message({
+                'type': 'changes-found'
+            })
+        else:
+            self.send_message({
+                'type': 'no-changes-found'
+            })
+
+    def scan_block(self, block):
+        """Scan the block and send back the """
+        blockpath = os.path.dirname(f'{self._repository_location}{block}')
+        files = []
+        for basepath, dirnames, filenames in os.walk(blockpath):
+            for filename in filenames:
+                if filename.endswith('.md'):
+                    files.append({
+                        'directory': basepath[len(blockpath) + 1:],
+                        'filename': filename
+                    })
+        self.send_message({
+            'type': 'block',
+            'path': block,
+            'files': files
+        })
 
 
 class RenderedHandler(web.RequestHandler):

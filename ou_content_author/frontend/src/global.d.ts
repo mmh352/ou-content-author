@@ -18,7 +18,9 @@ type Message = CloneRepositoryMessage |
                ChangesCommittedMessage |
                ChangesDiscardedMessage |
                ChangesFoundMessage |
-               NoChangesFoundMessage;
+               NoChangesFoundMessage |
+               AddFileMessage |
+               DeleteFileMessage;
 
 type CloneRepositoryMessage = {
     type: 'clone-repository',
@@ -117,4 +119,16 @@ type ChangesFoundMessage = {
 
 type NoChangesFoundMessage = {
     type: 'no-changes-found',
+};
+
+type AddFileMessageMessage = {
+    type: 'add-file',
+    block: string,
+    file: BlockFile,
+};
+
+type DeleteFileMessageMessage = {
+    type: 'delete-file',
+    block: string,
+    file: BlockFile,
 };

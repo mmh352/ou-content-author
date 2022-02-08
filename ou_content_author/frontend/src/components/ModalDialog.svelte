@@ -1,9 +1,20 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
 
+    let dialogElement = null as HTMLElement;
+
+    onMount(() => {
+        if (dialogElement) {
+            const autofocusElement = dialogElement.querySelector('[data-action="autofocus"]');
+            if (autofocusElement) {
+                (autofocusElement as HTMLElement).focus();
+            }
+        }
+    });
 </script>
 
 <div class="fixed left-0 top-0 w-screen h-screen bg-white/75 z-50">
-    <div role="dialog" class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col bg-white border-2 border-blue shadow-xl" aria-modal="true">
+    <div bind:this={dialogElement} role="dialog" class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col bg-white border-2 border-blue shadow-xl" aria-modal="true">
         {#if $$slots.title}
             <div class="flex-0 bg-blue text-white text-xl px-2 py-1"><slot name="title"></slot></div>
         {/if}
